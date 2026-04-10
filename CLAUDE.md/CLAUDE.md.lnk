@@ -1,0 +1,31 @@
+# Proyecto
+App web social de escritura creativa inspirada en YourQuote, con enfoque romántico, cálido y comunitario.
+
+# Objetivo
+Permitir que usuarios se registren, inicien sesión, publiquen frases y comentarios lindos, y participen en una comunidad positiva.
+
+# Stack deseado
+- React
+- Tailwind CSS
+- Diseño responsive mobile-first
+
+# Prioridades
+- UI moderna y premium
+- Excelente legibilidad de frases
+- Arquitectura simple
+- Componentes reutilizables
+- Enfoque MVP primero
+
+# Pantallas iniciales
+- Landing
+- Login / registro
+- Feed
+- Crear post
+- Perfil
+
+# Estilo visual
+- Minimalista
+- Delicado
+- Emocional
+- Femenino sin verse infantil
+- Tonos suaves: blanco cálido, rosa empolvado, lavanda, beige claro

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Juans/OneDrive/Documentos/Mari/mi-app-frases/**)",
+      "Bash(npm create:*)",
+      "Bash(npx create-vite@latest . --template react)",
+      "Read(//d C:/Users/Juans/OneDrive/Documentos/Mari/**)",
+      "Bash(dir)",
+      "Bash(node -e \"console.log\\(process.cwd\\(\\)\\)\")",
+      "Bash(npm install:*)"
+    ]
+  }
+}

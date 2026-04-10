@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-warm-50 text-warm-900 font-sans;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    @apply bg-rose-200 text-warm-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-rose-300 hover:bg-rose-400 text-white font-medium py-3 px-8 rounded-full
+           transition-all duration-300 ease-out hover:shadow-lg hover:shadow-rose-300/25
+           active:scale-95 focus:outline-none focus:ring-2 focus:ring-rose-300/50 focus:ring-offset-2 focus:ring-offset-warm-50;
+  }
+
+  .btn-secondary {
+    @apply border border-warm-300 hover:border-rose-300 text-warm-700 hover:text-rose-400
+           font-medium py-3 px-8 rounded-full transition-all duration-300 ease-out
+           active:scale-95 focus:outline-none focus:ring-2 focus:ring-warm-300/50 focus:ring-offset-2 focus:ring-offset-warm-50;
+  }
+
+  .btn-ghost {
+    @apply text-warm-600 hover:text-rose-400 hover:bg-rose-100/50 font-medium py-2 px-4
+           rounded-xl transition-all duration-200 active:scale-95;
+  }
+
+  .card {
+    @apply bg-white/70 backdrop-blur-sm border border-warm-200/60 rounded-2xl
+           shadow-sm hover:shadow-md transition-all duration-300;
+  }
+
+  .input-field {
+    @apply w-full bg-warm-50 border border-warm-200 rounded-xl px-4 py-3
+           text-warm-900 placeholder:text-warm-400 font-sans text-sm
+           focus:outline-none focus:ring-2 focus:ring-rose-300/40 focus:border-rose-300
+           transition-all duration-200;
+  }
+
+  .glass {
+    @apply bg-white/60 backdrop-blur-md border border-white/40;
+  }
+
+  .post-card {
+    @apply card p-6 md:p-8 cursor-pointer;
+  }
+
+  .post-text {
+    @apply font-serif text-lg md:text-xl leading-relaxed text-warm-800;
+  }
+
+  .avatar {
+    @apply rounded-full object-cover border-2 border-warm-200;
+  }
+
+  .nav-link {
+    @apply text-warm-600 hover:text-rose-400 transition-colors duration-200 text-sm font-medium;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+           bg-lavender-100 text-lavender-500;
+  }
+
+  .divider {
+    @apply border-t border-warm-200/60;
+  }
+
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply font-serif text-2xl md:text-3xl font-semibold text-warm-900;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E8D5C4;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4A9A9;
+}
+
+/* Textarea resize */
+textarea {
+  resize: none;
+}
