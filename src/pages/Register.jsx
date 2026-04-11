@@ -84,7 +84,7 @@ export default function Register() {
                 <label htmlFor="username" className="block text-sm font-medium text-warm-700 mb-1.5">Usuario</label>
                 <input id="username" type="text" value={username}
                   onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())}
-                  placeholder="tuusuario" className="input-field" required />
+                  placeholder="tu usuario aqui..." className="input-field" required />
                 {username && (
                   <p className="text-xs text-warm-300 mt-1">@{cleanUsername}</p>
                 )}
