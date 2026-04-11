@@ -10,8 +10,11 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { register } = useAuth()
+
+  const cleanUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '')
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -21,18 +24,25 @@ export default function Register() {
       setError('Todos los campos son obligatorios')
       return
     }
-
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
-
-    try {
-      register({ name: name.trim(), username: username.trim(), email: email.trim(), password })
-      navigate('/feed')
-    } catch (err) {
-      setError(err.message)
+    if (cleanUsername.length < 3) {
+      setError('El nombre de usuario debe tener al menos 3 caracteres')
+      return
     }
+
+    setLoading(true)
+    setTimeout(() => {
+      try {
+        register({ name: name.trim(), username: cleanUsername, email: email.trim(), password })
+        navigate('/feed')
+      } catch (err) {
+        setError(err.message)
+        setLoading(false)
+      }
+    }, 400)
   }
 
   return (
@@ -40,7 +50,6 @@ export default function Register() {
       {/* Left - Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-8">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-10">
             <Link to="/" className="inline-flex items-center gap-2">
               <Feather className="w-8 h-8 text-rose-400" />
@@ -53,8 +62,8 @@ export default function Register() {
               <Sparkles className="w-3.5 h-3.5 text-lavender-400" />
               <span className="text-xs font-medium text-lavender-500">Gratis para siempre</span>
             </div>
-            <h1 className="font-serif text-3xl font-bold text-warm-900 mb-2">Crea tu cuenta</h1>
-            <p className="text-warm-500">Tu espacio para escribir y compartir empieza aquí</p>
+            <h1 className="font-serif text-3xl font-bold text-warm-900 mb-2">Crea tu espacio</h1>
+            <p className="text-warm-400 text-sm">Tu refugio de escritura empieza aquí</p>
           </div>
 
           {error && (
@@ -66,94 +75,65 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-warm-700 mb-1.5">
-                  Nombre
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
+                <label htmlFor="name" className="block text-sm font-medium text-warm-700 mb-1.5">Nombre</label>
+                <input id="name" type="text" value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Tu nombre"
-                  className="input-field"
-                  required
-                />
+                  placeholder="Tu nombre" className="input-field" required />
               </div>
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-warm-700 mb-1.5">
-                  Usuario
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
+                <label htmlFor="username" className="block text-sm font-medium text-warm-700 mb-1.5">Usuario</label>
+                <input id="username" type="text" value={username}
                   onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())}
-                  placeholder="tuusuario"
-                  className="input-field"
-                  required
-                />
+                  placeholder="tuusuario" className="input-field" required />
                 {username && (
-                  <p className="text-xs text-warm-400 mt-1">@{username.toLowerCase().replace(/[^a-z0-9_]/g, '')}</p>
+                  <p className="text-xs text-warm-300 mt-1">@{cleanUsername}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="reg-email" className="block text-sm font-medium text-warm-700 mb-1.5">
-                Correo electrónico
-              </label>
-              <input
-                id="reg-email"
-                type="email"
-                value={email}
+              <label htmlFor="reg-email" className="block text-sm font-medium text-warm-700 mb-1.5">Correo electrónico</label>
+              <input id="reg-email" type="email" value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@correo.com"
-                className="input-field"
-                required
-              />
+                placeholder="tu@correo.com" className="input-field" required />
             </div>
 
             <div>
-              <label htmlFor="reg-password" className="block text-sm font-medium text-warm-700 mb-1.5">
-                Contraseña
-              </label>
+              <label htmlFor="reg-password" className="block text-sm font-medium text-warm-700 mb-1.5">Contraseña</label>
               <div className="relative">
-                <input
-                  id="reg-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
+                <input id="reg-password" type={showPassword ? 'text' : 'password'} value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  className="input-field pr-12"
-                  required
-                  minLength={8}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 transition-colors"
-                >
+                  placeholder="Mínimo 8 caracteres" className="input-field pr-12" required minLength={8} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 transition-colors">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
             <div className="pt-2">
-              <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
-                Crear mi cuenta
-                <ArrowRight className="w-4 h-4" />
+              <button type="submit" disabled={loading}
+                className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creando tu espacio...
+                  </span>
+                ) : (
+                  <>Crear mi cuenta <ArrowRight className="w-4 h-4" /></>
+                )}
               </button>
             </div>
           </form>
 
-          <p className="mt-5 text-xs text-warm-400 text-center leading-relaxed">
+          <p className="mt-5 text-xs text-warm-300 text-center leading-relaxed">
             Al registrarte, aceptas nuestros{' '}
             <a href="#" className="text-rose-400 hover:underline">Términos de servicio</a> y{' '}
             <a href="#" className="text-rose-400 hover:underline">Política de privacidad</a>.
           </p>
 
           <div className="mt-8 text-center">
-            <p className="text-sm text-warm-500">
+            <p className="text-sm text-warm-400">
               ¿Ya tienes cuenta?{' '}
               <Link to="/login" className="text-rose-400 hover:text-rose-500 font-medium transition-colors">
                 Inicia sesión
@@ -163,7 +143,7 @@ export default function Register() {
         </div>
       </div>
 
-      {/* Right - Decorative Panel (desktop) */}
+      {/* Right - Decorative */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-bl from-lavender-100 via-rose-100 to-warm-100">
         <div className="absolute inset-0 flex items-center justify-center p-16">
           <div className="max-w-md text-center relative">
@@ -175,8 +155,8 @@ export default function Register() {
                 Tu historia
                 <span className="text-lavender-400 italic block">empieza aquí</span>
               </h2>
-              <p className="text-warm-600 text-lg leading-relaxed">
-                Un espacio íntimo donde cada palabra importa. Escribe lo que sientes, comparte lo que eres.
+              <p className="text-warm-500 text-lg leading-relaxed">
+                Un espacio íntimo donde cada palabra importa.
               </p>
             </div>
           </div>
