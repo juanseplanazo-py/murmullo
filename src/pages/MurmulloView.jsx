@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState'
 import EditPostModal from '../components/EditPostModal'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { useUser } from '../hooks/useUser'
 import { useToast } from '../components/Toast'
 import { timeAgo, formatDate } from '../utils/time'
 
@@ -43,7 +44,7 @@ export default function MurmulloView() {
     )
   }
 
-  const author = store.getUser(post.authorId)
+  const author = useUser(post.authorId)
   const comments = store.getPostComments(post.id)
   const isOwn = user && post.authorId === user.id
   const likes = Array.isArray(post.likes) ? post.likes : []

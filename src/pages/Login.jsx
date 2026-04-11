@@ -12,20 +12,18 @@ export default function Login() {
   const navigate = useNavigate()
   const { login } = useAuth()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    setTimeout(() => {
-      try {
-        login({ email, password })
-        navigate('/feed')
-      } catch (err) {
-        setError(err.message)
-        setLoading(false)
-      }
-    }, 400)
+    try {
+      await login({ email, password })
+      navigate('/feed')
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+    }
   }
 
   return (

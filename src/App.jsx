@@ -63,12 +63,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <StoreProvider>
         <ToastProvider>
           <AppRoutes />
         </ToastProvider>
-      </AuthProvider>
-    </StoreProvider>
+      </StoreProvider>
+    </AuthProvider>
   )
 }

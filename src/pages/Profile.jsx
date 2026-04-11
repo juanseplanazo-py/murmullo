@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Calendar, Grid3x3, Heart, Bookmark, MapPin, LinkIcon,
-  PenLine, Feather, LogOut, Check, X, Pencil,
+  PenLine, Feather, LogOut, Check, X, Pencil, Loader2,
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import MurmulloCard from '../components/MurmulloCard'
@@ -12,6 +12,7 @@ import EditPostModal from '../components/EditPostModal'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from '../components/Toast'
+import { getPosts } from '../api/posts'
 import { formatDate } from '../utils/time'
 
 const tabs = [
@@ -28,6 +29,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('posts')
   const [editing, setEditing] = useState(false)
   const [editingPost, setEditingPost] = useState(null)
+  const [allPosts, setAllPosts] = useState([])
+  const [loadingPosts, setLoadingPosts] = useState(true)
   const [form, setForm] = useState({
     name: user?.name || '',
     bio: user?.bio || '',
@@ -35,11 +38,21 @@ export default function Profile() {
     link: user?.link || '',
   })
 
+  const loadPosts = useCallback(async () => {
+    const data = await getPosts()
+    setAllPosts(data)
+    setLoadingPosts(false)
+  }, [])
+
+  useEffect(() => {
+    loadPosts()
+  }, [loadPosts])
+
   if (!user) return null
 
-  const userPosts = store.getUserPosts(user.id)
-  const likedPosts = store.getLikedPosts(user.id)
-  const savedPosts = store.getSavedPosts(user.id)
+  const userPosts = allPosts.filter(p => p.authorId === user.id)
+  const likedPosts = allPosts.filter(p => Array.isArray(p.likes) && p.likes.includes(user.id))
+  const savedPosts = allPosts.filter(p => Array.isArray(p.saves) && p.saves.includes(user.id))
   const followerCount = store.getFollowerCount(user.id)
   const followingCount = store.getFollowingCount(user.id)
 
@@ -47,17 +60,20 @@ export default function Profile() {
     : activeTab === 'liked' ? likedPosts
     : savedPosts
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!form.name.trim()) return
-    updateProfile({
-      name: form.name.trim(),
-      bio: form.bio.trim(),
-      location: form.location.trim(),
-      link: form.link.trim(),
-    })
-    setEditing(false)
-    addToast('Perfil actualizado')
-    store.refresh()
+    try {
+      await updateProfile({
+        name: form.name.trim(),
+        bio: form.bio.trim(),
+        location: form.location.trim(),
+        link: form.link.trim(),
+      })
+      setEditing(false)
+      addToast('Perfil actualizado')
+    } catch {
+      addToast('No se pudo actualizar', 'error')
+    }
   }
 
   const handleLogout = () => {
@@ -164,7 +180,7 @@ export default function Profile() {
                 <div className="flex flex-wrap items-center gap-4 text-xs text-warm-400 mb-5">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
-                    Se unió en {formatDate(user.joinedAt)}
+                    Se unió en {formatDate(user.createdAt)}
                   </span>
                   {user.location && (
                     <span className="flex items-center gap-1">
@@ -228,6 +244,7 @@ export default function Profile() {
                 key={post.id}
                 post={post}
                 onEdit={post.authorId === user.id ? setEditingPost : undefined}
+                onRefresh={loadPosts}
               />
             ))}
           </div>

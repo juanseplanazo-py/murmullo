@@ -8,6 +8,7 @@ import EmptyState from '../components/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { getPosts } from '../api/posts'
+import { getAllUsers } from '../api/users'
 
 const moods = [
   { id: 'all', label: 'Todo' },
@@ -27,19 +28,19 @@ export default function Discover() {
   const [activeMood, setActiveMood] = useState('all')
   const [activeSection, setActiveSection] = useState('murmullos')
   const [posts, setPosts] = useState([])
+  const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const loadPosts = useCallback(async () => {
-    const data = await getPosts()
-    setPosts(data)
+  const loadData = useCallback(async () => {
+    const [postsData, usersData] = await Promise.all([getPosts(), getAllUsers()])
+    setPosts(postsData)
+    setAllUsers(usersData.filter(u => u.id !== user?.id))
     setLoading(false)
-  }, [])
+  }, [user?.id])
 
   useEffect(() => {
-    loadPosts()
-  }, [loadPosts])
-
-  const allUsers = store.getAllUsers().filter(u => u.id !== user?.id)
+    loadData()
+  }, [loadData])
 
   // Filter posts by search + mood
   const filteredPosts = useMemo(() => {
@@ -133,7 +134,7 @@ export default function Discover() {
             ) : filteredPosts.length > 0 ? (
               <div className="space-y-6">
                 {filteredPosts.map((post) => (
-                  <MurmulloCard key={post.id} post={post} onRefresh={loadPosts} />
+                  <MurmulloCard key={post.id} post={post} onRefresh={loadData} />
                 ))}
               </div>
             ) : searchQuery.trim() ? (

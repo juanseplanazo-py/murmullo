@@ -16,7 +16,7 @@ export default function Register() {
 
   const cleanUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -34,15 +34,13 @@ export default function Register() {
     }
 
     setLoading(true)
-    setTimeout(() => {
-      try {
-        register({ name: name.trim(), username: cleanUsername, email: email.trim(), password })
-        navigate('/feed')
-      } catch (err) {
-        setError(err.message)
-        setLoading(false)
-      }
-    }, 400)
+    try {
+      await register({ name: name.trim(), username: cleanUsername, email: email.trim(), password })
+      navigate('/feed')
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+    }
   }
 
   return (

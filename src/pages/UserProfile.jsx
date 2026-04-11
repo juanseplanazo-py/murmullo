@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, MapPin, LinkIcon, Users } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, LinkIcon, Users, Loader2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import MurmulloCard from '../components/MurmulloCard'
 import Avatar from '../components/Avatar'
@@ -8,6 +8,8 @@ import EmptyState from '../components/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from '../components/Toast'
+import { getUserByUsername } from '../api/users'
+import { getPosts } from '../api/posts'
 import { formatDate } from '../utils/time'
 
 export default function UserProfile() {
@@ -16,8 +18,32 @@ export default function UserProfile() {
   const { user } = useAuth()
   const store = useStore()
   const { addToast } = useToast()
+  const [profile, setProfile] = useState(null)
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const profile = store.getUserByUsername(username)
+  useEffect(() => {
+    async function load() {
+      const u = await getUserByUsername(username)
+      setProfile(u)
+      if (u) {
+        const allPosts = await getPosts()
+        setPosts(allPosts.filter(p => p.authorId === u.id))
+      }
+      setLoading(false)
+    }
+    load()
+  }, [username])
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-6 h-6 text-rose-300 animate-spin" />
+        </div>
+      </Layout>
+    )
+  }
 
   if (!profile) {
     return (
@@ -35,10 +61,8 @@ export default function UserProfile() {
     )
   }
 
-  // If viewing own profile, redirect is handled by the user
   const isOwn = user && profile.id === user.id
   const isFollowing = user ? store.isFollowing(user.id, profile.id) : false
-  const posts = store.getUserPosts(profile.id)
   const followerCount = store.getFollowerCount(profile.id)
   const followingCount = store.getFollowingCount(profile.id)
 
@@ -95,7 +119,7 @@ export default function UserProfile() {
             <div className="flex flex-wrap items-center gap-4 text-xs text-warm-400 mb-5">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                Se unió en {formatDate(profile.joinedAt)}
+                Se unió en {formatDate(profile.createdAt)}
               </span>
               {profile.location && (
                 <span className="flex items-center gap-1">

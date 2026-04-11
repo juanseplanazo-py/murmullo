@@ -6,6 +6,7 @@ import CommentPanel from './CommentPanel'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from './Toast'
+import { useUser } from '../hooks/useUser'
 import { deletePostApi } from '../api/posts'
 import { timeAgo } from '../utils/time'
 
@@ -28,7 +29,7 @@ export default function MurmulloCard({ post, featured = false, onEdit, onRefresh
   const [localLikeCount, setLocalLikeCount] = useState(likes.length)
   const [localSaved, setLocalSaved] = useState(user ? saves.includes(user.id) : false)
 
-  const author = store.getUser(post.authorId)
+  const author = useUser(post.authorId)
   const isOwn = user && post.authorId === user.id
   const commentCount = store.getCommentCount(post.id)
 
