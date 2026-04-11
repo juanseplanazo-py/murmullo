@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Sparkles, Palette } from 'lucide-react'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { useAuth } from '../context/AuthContext'
-import { useStore } from '../context/StoreContext'
 import { useToast } from '../components/Toast'
+import { createPost } from '../api/posts'
 
 const categories = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
 
@@ -25,7 +25,6 @@ const prompts = [
 
 export default function Create() {
   const { user } = useAuth()
-  const store = useStore()
   const { addToast } = useToast()
   const [text, setText] = useState('')
   const [category, setCategory] = useState('')
@@ -38,22 +37,18 @@ export default function Create() {
   const maxChars = 500
   const selectedBg = bgOptions.find(b => b.id === bgStyle)
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!text.trim() || !user || isPublishing) return
     setIsPublishing(true)
 
-    // Small delay for intentionality
-    setTimeout(() => {
-      store.createPost({
-        authorId: user.id,
-        text: text.trim(),
-        category: category || null,
-        bgStyle,
-      })
-      store.refresh()
+    try {
+      await createPost(text.trim(), user.id)
       addToast('Tu murmullo fue enviado al mundo')
       navigate('/feed')
-    }, 600)
+    } catch (err) {
+      addToast('No se pudo publicar. Intenta de nuevo.', 'error')
+      setIsPublishing(false)
+    }
   }
 
   return (

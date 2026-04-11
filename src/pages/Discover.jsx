@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Search, Compass, Feather, Users } from 'lucide-react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Search, Compass, Feather, Users, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import MurmulloCard from '../components/MurmulloCard'
@@ -7,6 +7,7 @@ import Avatar from '../components/Avatar'
 import EmptyState from '../components/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { getPosts } from '../api/posts'
 
 const moods = [
   { id: 'all', label: 'Todo' },
@@ -25,37 +26,56 @@ export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeMood, setActiveMood] = useState('all')
   const [activeSection, setActiveSection] = useState('murmullos')
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const allPosts = store.getAllPosts()
+  const loadPosts = useCallback(async () => {
+    const data = await getPosts()
+    setPosts(data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadPosts()
+  }, [loadPosts])
+
   const allUsers = store.getAllUsers().filter(u => u.id !== user?.id)
 
-  // Search results
-  const results = useMemo(() => {
-    if (searchQuery.trim()) {
-      return store.search(searchQuery)
-    }
-    return null
-  }, [searchQuery, store])
-
-  // Filtered posts by mood
+  // Filter posts by search + mood
   const filteredPosts = useMemo(() => {
-    const posts = results ? results.posts : allPosts
-    if (activeMood === 'all') return posts
-    return posts.filter(p => p.category === activeMood)
-  }, [results, allPosts, activeMood])
+    let result = posts
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(p =>
+        (p.text || '').toLowerCase().includes(q) ||
+        (p.category && p.category.toLowerCase().includes(q))
+      )
+    }
+    if (activeMood !== 'all') {
+      result = result.filter(p => p.category === activeMood)
+    }
+    return result
+  }, [posts, searchQuery, activeMood])
 
-  const displayUsers = results ? results.users : allUsers
+  const displayUsers = useMemo(() => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      return allUsers.filter(u =>
+        u.name.toLowerCase().includes(q) ||
+        u.username.toLowerCase().includes(q)
+      )
+    }
+    return allUsers
+  }, [allUsers, searchQuery])
 
   return (
     <Layout>
       <div className="page-container max-w-3xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-10">
           <h1 className="font-serif text-3xl font-bold text-warm-900 mb-2">Descubrir</h1>
           <p className="text-warm-400 text-sm">Encuentra voces que resuenen contigo</p>
         </div>
 
-        {/* Search */}
         <div className="max-w-xl mx-auto mb-8">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-warm-300" />
@@ -72,14 +92,11 @@ export default function Discover() {
           </div>
         </div>
 
-        {/* Section toggle */}
         <div className="flex justify-center gap-2 mb-8">
           <button
             onClick={() => setActiveSection('murmullos')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-              ${activeSection === 'murmullos'
-                ? 'bg-warm-900 text-white'
-                : 'text-warm-500 hover:bg-warm-100'}`}
+              ${activeSection === 'murmullos' ? 'bg-warm-900 text-white' : 'text-warm-500 hover:bg-warm-100'}`}
           >
             <Feather className="w-4 h-4" />
             Murmullos
@@ -87,38 +104,36 @@ export default function Discover() {
           <button
             onClick={() => setActiveSection('voces')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-              ${activeSection === 'voces'
-                ? 'bg-warm-900 text-white'
-                : 'text-warm-500 hover:bg-warm-100'}`}
+              ${activeSection === 'voces' ? 'bg-warm-900 text-white' : 'text-warm-500 hover:bg-warm-100'}`}
           >
             <Users className="w-4 h-4" />
             Voces
           </button>
         </div>
 
-        {/* ── Murmullos Section ── */}
         {activeSection === 'murmullos' && (
           <>
-            {/* Mood filters */}
             <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide justify-center flex-wrap">
               {moods.map((mood) => (
                 <button
                   key={mood.id}
                   onClick={() => setActiveMood(mood.id)}
                   className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200
-                    ${activeMood === mood.id
-                      ? 'bg-warm-900 text-white'
-                      : 'text-warm-400 hover:text-warm-700 hover:bg-warm-100'}`}
+                    ${activeMood === mood.id ? 'bg-warm-900 text-white' : 'text-warm-400 hover:text-warm-700 hover:bg-warm-100'}`}
                 >
                   {mood.label}
                 </button>
               ))}
             </div>
 
-            {filteredPosts.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-6 h-6 text-rose-300 animate-spin" />
+              </div>
+            ) : filteredPosts.length > 0 ? (
               <div className="space-y-6">
                 {filteredPosts.map((post) => (
-                  <MurmulloCard key={post.id} post={post} />
+                  <MurmulloCard key={post.id} post={post} onRefresh={loadPosts} />
                 ))}
               </div>
             ) : searchQuery.trim() ? (
@@ -139,7 +154,6 @@ export default function Discover() {
           </>
         )}
 
-        {/* ── Voces Section ── */}
         {activeSection === 'voces' && (
           <>
             {displayUsers.length > 0 ? (
@@ -149,17 +163,9 @@ export default function Discover() {
                 ))}
               </div>
             ) : searchQuery.trim() ? (
-              <EmptyState
-                icon={Search}
-                title="Sin resultados"
-                description={`No encontramos voces para "${searchQuery}".`}
-              />
+              <EmptyState icon={Search} title="Sin resultados" description={`No encontramos voces para "${searchQuery}".`} />
             ) : (
-              <EmptyState
-                icon={Users}
-                title="Aún no hay otras voces"
-                description="Cuando más personas se unan, podrás descubrir nuevas voces aquí."
-              />
+              <EmptyState icon={Users} title="Aún no hay otras voces" description="Cuando más personas se unan, podrás descubrir nuevas voces aquí." />
             )}
           </>
         )}
@@ -188,23 +194,15 @@ function UserCard({ profile, store, currentUserId }) {
         </h3>
         <p className="text-xs text-warm-400 mb-3">@{profile.username}</p>
       </Link>
-
-      {profile.bio && (
-        <p className="text-xs text-warm-500 leading-relaxed mb-4 line-clamp-2">{profile.bio}</p>
-      )}
-
+      {profile.bio && <p className="text-xs text-warm-500 leading-relaxed mb-4 line-clamp-2">{profile.bio}</p>}
       <div className="flex items-center justify-center gap-5 mb-5 text-xs text-warm-400">
         <span><span className="font-semibold text-warm-700">{postCount}</span> murmullos</span>
         <span><span className="font-semibold text-warm-700">{followerCount}</span> oyentes</span>
       </div>
-
       <button
         onClick={handleToggle}
         className={`w-full text-xs font-medium py-2.5 rounded-full transition-all duration-200
-          ${following
-            ? 'bg-warm-100 text-warm-500 hover:bg-warm-200 border border-warm-200'
-            : 'bg-rose-300 text-white hover:bg-rose-400 shadow-sm'
-          }`}
+          ${following ? 'bg-warm-100 text-warm-500 hover:bg-warm-200 border border-warm-200' : 'bg-rose-300 text-white hover:bg-rose-400 shadow-sm'}`}
       >
         {following ? 'Escuchando' : 'Escuchar'}
       </button>

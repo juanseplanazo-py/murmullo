@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Trash2, Pencil, Copy } from 'lucide-react'
+import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
 import Avatar from './Avatar'
 import CommentPanel from './CommentPanel'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from './Toast'
+import { deletePostApi } from '../api/posts'
 import { timeAgo } from '../utils/time'
 
 const bgStyles = {
@@ -14,32 +15,38 @@ const bgStyles = {
   lavender: 'bg-gradient-to-br from-lavender-100/30 via-white to-lavender-100/20',
 }
 
-export default function MurmulloCard({ post, featured = false, onEdit }) {
+export default function MurmulloCard({ post, featured = false, onEdit, onRefresh }) {
   const { user } = useAuth()
   const store = useStore()
   const { addToast } = useToast()
   const navigate = useNavigate()
   const [showMenu, setShowMenu] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const likes = Array.isArray(post.likes) ? post.likes : []
+  const saves = Array.isArray(post.saves) ? post.saves : []
+  const [localLiked, setLocalLiked] = useState(user ? likes.includes(user.id) : false)
+  const [localLikeCount, setLocalLikeCount] = useState(likes.length)
+  const [localSaved, setLocalSaved] = useState(user ? saves.includes(user.id) : false)
 
   const author = store.getUser(post.authorId)
   const isOwn = user && post.authorId === user.id
-  const isLiked = user && post.likes.includes(user.id)
-  const isSaved = user && post.saves.includes(user.id)
   const commentCount = store.getCommentCount(post.id)
-  const likeCount = post.likes.length
 
   const handleLike = () => {
     if (!user) return
+    setLocalLiked(prev => !prev)
+    setLocalLikeCount(prev => localLiked ? prev - 1 : prev + 1)
+    // Still use local store for likes (will migrate later)
     store.toggleLike(post.id, user.id)
     store.refresh()
   }
 
   const handleSave = () => {
     if (!user) return
+    setLocalSaved(prev => !prev)
     store.toggleSave(post.id, user.id)
     store.refresh()
-    if (!isSaved) addToast('Atesorado')
+    if (!localSaved) addToast('Atesorado')
   }
 
   const handleShare = () => {
@@ -49,11 +56,15 @@ export default function MurmulloCard({ post, featured = false, onEdit }) {
     })
   }
 
-  const handleDelete = () => {
-    store.deletePost(post.id)
-    store.refresh()
-    setShowMenu(false)
-    addToast('Murmullo eliminado')
+  const handleDelete = async () => {
+    try {
+      await deletePostApi(post.id)
+      setShowMenu(false)
+      addToast('Murmullo eliminado')
+      if (onRefresh) onRefresh()
+    } catch {
+      addToast('No se pudo eliminar', 'error')
+    }
   }
 
   const displayTime = timeAgo(post.createdAt)
@@ -63,19 +74,19 @@ export default function MurmulloCard({ post, featured = false, onEdit }) {
       <article className={`rounded-3xl border border-warm-200/50 ${bgStyles[post.bgStyle] || bgStyles.warm}
                          p-6 sm:p-8 transition-all duration-300 hover:shadow-md hover:shadow-warm-200/30 animate-fade-in`}>
 
-        {/* ── Text First: The murmullo is the protagonist ── */}
+        {/* ── Text First ── */}
         <div
           className={`mb-6 ${featured ? 'py-6' : 'py-3'} cursor-pointer`}
           onClick={() => navigate(`/murmullo/${post.id}`)}
         >
           <p className={`font-serif leading-relaxed text-warm-800 whitespace-pre-line
             ${featured ? 'text-2xl sm:text-3xl' : 'text-lg sm:text-xl'}
-            ${post.text.length < 80 ? 'text-center' : ''}`}>
-            {post.text}
+            ${(post.text || '').length < 80 ? 'text-center' : ''}`}>
+            {post.text || ''}
           </p>
         </div>
 
-        {/* ── Category tag (subtle) ── */}
+        {/* ── Category ── */}
         {post.category && (
           <div className="mb-5">
             <span className="text-xs font-medium text-lavender-400 tracking-wide uppercase">
@@ -84,10 +95,10 @@ export default function MurmulloCard({ post, featured = false, onEdit }) {
           </div>
         )}
 
-        {/* ── Author line (secondary, below text) ── */}
+        {/* ── Author ── */}
         <div className="flex items-center justify-between mb-5">
           <Link
-            to={isOwn ? '/profile' : `/u/${author?.username}`}
+            to={isOwn ? '/perfil' : `/u/${author?.username || post.authorId}`}
             className="flex items-center gap-2.5 group"
           >
             <Avatar name={author?.name || '?'} size="xs" />
@@ -95,12 +106,8 @@ export default function MurmulloCard({ post, featured = false, onEdit }) {
               <span className="text-sm font-medium text-warm-700 group-hover:text-rose-400 transition-colors">
                 {author?.name || 'Anónimo'}
               </span>
-              <span className="text-xs text-warm-400">
-                · {displayTime}
-              </span>
-              {post.editedAt && (
-                <span className="text-xs text-warm-300 italic">editado</span>
-              )}
+              <span className="text-xs text-warm-400">· {displayTime}</span>
+              {post.editedAt && <span className="text-xs text-warm-300 italic">editado</span>}
             </div>
           </Link>
 
@@ -139,52 +146,38 @@ export default function MurmulloCard({ post, featured = false, onEdit }) {
           )}
         </div>
 
-        {/* ── Interactions: soft, human, no visible counters by default ── */}
+        {/* ── Interactions ── */}
         <div className="flex items-center justify-between pt-4 border-t border-warm-200/30">
           <div className="flex items-center gap-0.5">
-            {/* Resonar (like) */}
             <button
               onClick={handleLike}
               className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all duration-300 active:scale-90
-                ${isLiked
-                  ? 'text-rose-400'
-                  : 'text-warm-300 hover:text-rose-300'
-                }`}
+                ${localLiked ? 'text-rose-400' : 'text-warm-300 hover:text-rose-300'}`}
               title="Resonar"
             >
-              <Heart className={`w-[18px] h-[18px] transition-all duration-300 ${isLiked ? 'fill-rose-400 scale-110' : ''}`} />
-              {likeCount > 0 && (
-                <span className="text-xs font-medium">{likeCount}</span>
-              )}
+              <Heart className={`w-[18px] h-[18px] transition-all duration-300 ${localLiked ? 'fill-rose-400 scale-110' : ''}`} />
+              {localLikeCount > 0 && <span className="text-xs font-medium">{localLikeCount}</span>}
             </button>
 
-            {/* Susurros (comments) */}
             <button
               onClick={() => setShowComments(true)}
               className="flex items-center gap-1.5 py-2 px-3 rounded-xl text-warm-300 hover:text-lavender-400 transition-all duration-200 active:scale-95"
               title="Susurros"
             >
               <MessageCircle className="w-[18px] h-[18px]" />
-              {commentCount > 0 && (
-                <span className="text-xs font-medium">{commentCount}</span>
-              )}
+              {commentCount > 0 && <span className="text-xs font-medium">{commentCount}</span>}
             </button>
 
-            {/* Atesorar (save) */}
             <button
               onClick={handleSave}
               className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all duration-300 active:scale-90
-                ${isSaved
-                  ? 'text-warm-700'
-                  : 'text-warm-300 hover:text-warm-500'
-                }`}
+                ${localSaved ? 'text-warm-700' : 'text-warm-300 hover:text-warm-500'}`}
               title="Atesorar"
             >
-              <Bookmark className={`w-[18px] h-[18px] transition-all duration-300 ${isSaved ? 'fill-warm-700' : ''}`} />
+              <Bookmark className={`w-[18px] h-[18px] transition-all duration-300 ${localSaved ? 'fill-warm-700' : ''}`} />
             </button>
           </div>
 
-          {/* Compartir */}
           <button
             onClick={handleShare}
             className="py-2 px-3 rounded-xl text-warm-300 hover:text-rose-300 transition-all duration-200 active:scale-95"

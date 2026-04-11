@@ -46,8 +46,10 @@ export default function MurmulloView() {
   const author = store.getUser(post.authorId)
   const comments = store.getPostComments(post.id)
   const isOwn = user && post.authorId === user.id
-  const isLiked = user && post.likes.includes(user.id)
-  const isSaved = user && post.saves.includes(user.id)
+  const likes = Array.isArray(post.likes) ? post.likes : []
+  const saves = Array.isArray(post.saves) ? post.saves : []
+  const isLiked = user && likes.includes(user.id)
+  const isSaved = user && saves.includes(user.id)
 
   const handleLike = () => {
     if (!user) return
@@ -99,8 +101,8 @@ export default function MurmulloView() {
         {/* The Murmullo — full stage */}
         <div className={`rounded-3xl border border-warm-200/40 ${bgStyles[post.bgStyle] || bgStyles.warm} p-8 sm:p-12 mb-2`}>
           <p className={`font-serif text-2xl sm:text-3xl leading-relaxed text-warm-800 whitespace-pre-line
-            ${post.text.length < 100 ? 'text-center' : ''}`}>
-            {post.text}
+            ${(post.text || '').length < 100 ? 'text-center' : ''}`}>
+            {post.text || ''}
           </p>
         </div>
 
@@ -139,7 +141,7 @@ export default function MurmulloView() {
               className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all duration-300 active:scale-90
                 ${isLiked ? 'text-rose-400' : 'text-warm-300 hover:text-rose-300'}`}>
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-rose-400' : ''}`} />
-              {post.likes.length > 0 && <span className="text-sm">{post.likes.length}</span>}
+              {likes.length > 0 && <span className="text-sm">{likes.length}</span>}
             </button>
             <span className="text-warm-200 mx-1">·</span>
             <span className="text-sm text-warm-400">{comments.length} susurros</span>

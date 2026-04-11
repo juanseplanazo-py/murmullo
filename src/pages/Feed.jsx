@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Feather, PenLine, BookOpen } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Feather, PenLine, BookOpen, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import MurmulloCard from '../components/MurmulloCard'
@@ -8,6 +8,7 @@ import EmptyState from '../components/EmptyState'
 import EditPostModal from '../components/EditPostModal'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import { getPosts } from '../api/posts'
 
 const categories = ['Todo', 'Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
 
@@ -16,17 +17,27 @@ export default function Feed() {
   const store = useStore()
   const [activeCategory, setActiveCategory] = useState('Todo')
   const [editingPost, setEditingPost] = useState(null)
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Feed shows user's posts + posts from people they listen to
-  const feedPosts = store.getFeed(user?.id)
-  const allPosts = store.getAllPosts()
+  const loadPosts = useCallback(async () => {
+    const data = await getPosts()
+    setPosts(data)
+    setLoading(false)
+  }, [])
 
-  // If user has no feed (follows nobody), show all posts as discovery
-  const postsToShow = feedPosts.length > 0 ? feedPosts : allPosts
+  useEffect(() => {
+    loadPosts()
+  }, [loadPosts])
+
+  // Called after creating/editing/deleting a post
+  const refreshPosts = useCallback(() => {
+    loadPosts()
+  }, [loadPosts])
 
   const filteredPosts = activeCategory === 'Todo'
-    ? postsToShow
-    : postsToShow.filter(p => p.category === activeCategory)
+    ? posts
+    : posts.filter(p => p.category === activeCategory)
 
   const firstName = user?.name?.split(' ')[0] || ''
 
@@ -58,7 +69,7 @@ export default function Feed() {
             </div>
 
             {/* Category Filters */}
-            {postsToShow.length > 0 && (
+            {posts.length > 0 && (
               <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                 {categories.map((cat) => (
                   <button
@@ -76,8 +87,12 @@ export default function Feed() {
               </div>
             )}
 
-            {/* Murmullos */}
-            {filteredPosts.length > 0 ? (
+            {/* Loading */}
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-6 h-6 text-rose-300 animate-spin" />
+              </div>
+            ) : filteredPosts.length > 0 ? (
               <div className="space-y-6">
                 {filteredPosts.map((post, index) => (
                   <MurmulloCard
@@ -85,6 +100,7 @@ export default function Feed() {
                     post={post}
                     featured={index === 0 && activeCategory === 'Todo'}
                     onEdit={post.authorId === user?.id ? setEditingPost : undefined}
+                    onRefresh={refreshPosts}
                   />
                 ))}
               </div>
@@ -119,7 +135,7 @@ export default function Feed() {
                 </Link>
                 <div className="flex items-center gap-4 text-xs pt-3 border-t border-warm-200/30">
                   <div>
-                    <span className="font-semibold text-warm-800">{store.getUserPosts(user?.id).length}</span>
+                    <span className="font-semibold text-warm-800">{posts.filter(p => p.authorId === user?.id).length}</span>
                     <span className="text-warm-400 ml-1">murmullos</span>
                   </div>
                   <div>
@@ -129,12 +145,12 @@ export default function Feed() {
                 </div>
               </div>
 
-              {/* First steps — only for new users */}
-              {store.getUserPosts(user?.id).length < 3 && (
+              {/* First steps */}
+              {posts.filter(p => p.authorId === user?.id).length < 3 && (
                 <div className="card p-5">
                   <h3 className="font-serif text-sm font-semibold text-warm-800 mb-3">Primeros pasos</h3>
                   <ul className="space-y-2.5">
-                    <StepItem done={store.getUserPosts(user?.id).length > 0} text="Deja tu primer murmullo" />
+                    <StepItem done={posts.some(p => p.authorId === user?.id)} text="Deja tu primer murmullo" />
                     <StepItem done={!!user?.bio} text="Escribe tu bio" />
                     <StepItem done={store.getFollowingCount(user?.id) > 0} text="Escucha a alguien" />
                   </ul>
@@ -152,7 +168,7 @@ export default function Feed() {
       </div>
 
       {editingPost && (
-        <EditPostModal post={editingPost} onClose={() => setEditingPost(null)} />
+        <EditPostModal post={editingPost} onClose={() => { setEditingPost(null); refreshPosts() }} />
       )}
     </Layout>
   )

@@ -1,25 +1,30 @@
 import { useState } from 'react'
 import { X, Sparkles } from 'lucide-react'
-import { useStore } from '../context/StoreContext'
 import { useToast } from './Toast'
+import { updatePostApi } from '../api/posts'
 
 const categories = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
 
 export default function EditPostModal({ post, onClose }) {
-  const store = useStore()
   const { addToast } = useToast()
   const [text, setText] = useState(post.text)
   const [category, setCategory] = useState(post.category || '')
+  const [saving, setSaving] = useState(false)
 
   const maxChars = 500
   const charCount = text.length
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!text.trim()) return
-    store.updatePost(post.id, { text: text.trim(), category: category || null })
-    store.refresh()
-    addToast('Murmullo actualizado')
-    onClose()
+    setSaving(true)
+    try {
+      await updatePostApi(post.id, { text: text.trim() })
+      addToast('Murmullo actualizado')
+      onClose()
+    } catch {
+      addToast('No se pudo actualizar', 'error')
+      setSaving(false)
+    }
   }
 
   return (
@@ -68,10 +73,10 @@ export default function EditPostModal({ post, onClose }) {
           <button onClick={onClose} className="btn-secondary text-sm py-2.5 px-6">Cancelar</button>
           <button
             onClick={handleSave}
-            disabled={!text.trim() || text === post.text}
+            disabled={!text.trim() || saving}
             className="btn-primary text-sm py-2.5 px-6 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Guardar cambios
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </div>
