@@ -11,7 +11,7 @@ export default function Navbar() {
     <>
       {/* Desktop */}
       <nav className="hidden md:block fixed top-0 left-0 right-0 z-50 glass border-b border-warm-200/30">
-        <div className="max-w-xl mx-auto px-6">
+        <div className="page-container">
           <div className="flex items-center justify-between h-16">
             <Link to="/feed" className="flex items-center gap-2 group">
               <Feather className="w-5 h-5 text-rose-400 group-hover:rotate-12 transition-transform" />
