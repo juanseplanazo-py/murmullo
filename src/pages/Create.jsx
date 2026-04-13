@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sparkles, EyeOff } from 'lucide-react'
+import { ArrowLeft, RefreshCw, EyeOff } from 'lucide-react'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { useAuth } from '../context/AuthContext'
@@ -10,12 +10,22 @@ import { createPost } from '../api/posts'
 const tagOptions = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
 
 const prompts = [
-  '¿Qué quieres dejarle al mundo hoy?',
+  '¿Qué pensaste hoy que no dijiste?',
+  'Algo que te gustaría decirle a alguien...',
+  'Una idea que no podés sacarte de la cabeza',
   'Escribe como si nadie estuviera leyendo...',
-  'Deja que las palabras encuentren su camino...',
   '¿Qué sientes que necesita ser dicho?',
-  'A veces basta con una frase...',
+  'Algo que aprendiste de la forma difícil',
+  'Un recuerdo que vuelve sin avisar',
+  'Lo que no cabe en una conversación...',
+  'Si pudieras dejar un mensaje al mundo, ¿cuál sería?',
+  'Eso que pensás en el colectivo y nunca decís...',
 ]
+
+function getRandomPrompt(exclude) {
+  const options = prompts.filter(p => p !== exclude)
+  return options[Math.floor(Math.random() * options.length)]
+}
 
 export default function Create() {
   const { user } = useAuth()
@@ -23,12 +33,12 @@ export default function Create() {
   const [text, setText] = useState('')
   const [tags, setTags] = useState([])
   const [isAnonymous, setIsAnonymous] = useState(false)
-  const [prompt] = useState(() => prompts[Math.floor(Math.random() * prompts.length)])
+  const [prompt, setPrompt] = useState(() => getRandomPrompt())
   const [isPublishing, setIsPublishing] = useState(false)
   const navigate = useNavigate()
 
   const charCount = text.length
-  const maxChars = 500
+  const maxChars = 2000
 
   const toggleTag = (tag) => {
     setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
@@ -50,12 +60,12 @@ export default function Create() {
 
   return (
     <Layout>
-      <div className="page-container max-w-2xl mx-auto">
+      <div className="max-w-xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-warm-400 hover:text-warm-700 transition-colors"
+            className="p-2 -ml-2 rounded-xl text-warm-400 hover:text-warm-700 active:bg-warm-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -75,20 +85,34 @@ export default function Create() {
           </button>
         </div>
 
-        {/* Writing Space */}
-        <div className="rounded-3xl border border-warm-200/40 bg-gradient-to-br from-warm-50 via-white to-warm-100/50 p-8 sm:p-12 mb-8 transition-all duration-500">
-          {/* Author */}
-          <div className="flex items-center gap-3 mb-8 opacity-60">
+        {/* Prompt */}
+        <div className="flex items-start gap-2 mb-6">
+          <p className="text-sm text-warm-400 italic font-serif leading-relaxed flex-1">
+            {prompt}
+          </p>
+          <button
+            onClick={() => setPrompt(getRandomPrompt(prompt))}
+            className="p-2 rounded-xl text-warm-300 hover:text-warm-500 active:bg-warm-100 transition-all shrink-0"
+            title="Otro prompt"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Writing area */}
+        <div className="mb-8">
+          {/* Author line */}
+          <div className="flex items-center gap-2.5 mb-4">
             {isAnonymous ? (
               <>
-                <div className="w-8 h-8 rounded-full bg-warm-200 flex items-center justify-center">
-                  <EyeOff className="w-4 h-4 text-warm-400" />
+                <div className="w-7 h-7 rounded-full bg-warm-200 flex items-center justify-center">
+                  <EyeOff className="w-3.5 h-3.5 text-warm-400" />
                 </div>
-                <span className="text-sm text-warm-500 italic">Anónimo</span>
+                <span className="text-sm text-warm-400 italic">Anónimo</span>
               </>
             ) : (
               <>
-                <Avatar name={user?.name || '?'} size="sm" />
+                <Avatar name={user?.name || '?'} size="xs" />
                 <span className="text-sm text-warm-500">{user?.name}</span>
               </>
             )}
@@ -98,67 +122,49 @@ export default function Create() {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, maxChars))}
-            placeholder={prompt}
-            className="w-full min-h-[280px] bg-transparent font-serif text-xl sm:text-2xl text-warm-800
-                     placeholder:text-warm-300/80 placeholder:italic leading-relaxed focus:outline-none"
+            placeholder="Escribe lo que necesites decir..."
+            className="w-full min-h-[40vh] sm:min-h-[320px] bg-transparent font-serif text-lg sm:text-xl text-warm-800
+                     placeholder:text-warm-300 leading-[1.8] focus:outline-none"
             autoFocus
           />
 
-          {/* Counter */}
-          <div className="flex items-center justify-between mt-6 pt-5 border-t border-warm-200/20">
-            <div className="flex items-center gap-2 opacity-50">
-              <Sparkles className="w-4 h-4 text-lavender-300" />
-              <span className="text-xs text-warm-400 italic">Sin prisa</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <svg className="w-7 h-7 -rotate-90 opacity-40" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="15" fill="none" stroke="#E8D5C4" strokeWidth="1.5" />
-                <circle
-                  cx="18" cy="18" r="15" fill="none"
-                  stroke={charCount > maxChars * 0.9 ? '#D4A9A9' : '#C4B1D4'}
-                  strokeWidth="1.5"
-                  strokeDasharray={`${(charCount / maxChars) * 94.2} 94.2`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className={`text-xs ${charCount > maxChars * 0.9 ? 'text-rose-400' : 'text-warm-300'}`}>
-                {maxChars - charCount}
-              </span>
-            </div>
+          {/* Char count */}
+          <div className="flex justify-end pt-2 border-t border-warm-100">
+            <span className={`text-xs tabular-nums ${charCount > maxChars * 0.9 ? 'text-rose-400' : 'text-warm-300'}`}>
+              {charCount} / {maxChars}
+            </span>
           </div>
         </div>
 
         {/* Options */}
-        <div className="space-y-5 opacity-80 hover:opacity-100 transition-opacity duration-300">
-          {/* Anonymous toggle */}
-          <div>
-            <button
-              onClick={() => setIsAnonymous(!isAnonymous)}
-              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border-2 transition-all duration-200
-                ${isAnonymous
-                  ? 'border-warm-700 bg-warm-800 text-white shadow-sm'
-                  : 'border-warm-200/40 text-warm-500 hover:border-warm-300/60'
-                }`}
-            >
-              <EyeOff className="w-4 h-4" />
-              <span className="text-xs font-medium">Publicar como anónimo</span>
-            </button>
-          </div>
+        <div className="space-y-5 pb-8">
+          {/* Anonymous */}
+          <button
+            onClick={() => setIsAnonymous(!isAnonymous)}
+            className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border transition-all duration-200 w-full sm:w-auto
+              ${isAnonymous
+                ? 'border-warm-700 bg-warm-800 text-white'
+                : 'border-warm-200 text-warm-500 active:bg-warm-50'
+              }`}
+          >
+            <EyeOff className="w-4 h-4" />
+            <span className="text-sm font-medium">Publicar como anónimo</span>
+          </button>
 
-          {/* Tags — multi-select */}
+          {/* Tags */}
           <div>
-            <label className="text-xs font-medium text-warm-400 mb-2.5 block uppercase tracking-wider">
-              Etiquetas {tags.length > 0 && <span className="text-lavender-400">({tags.length})</span>}
-            </label>
+            <p className="text-xs font-medium text-warm-400 mb-2.5 uppercase tracking-wider">
+              Etiquetas {tags.length > 0 && <span className="text-lavender-400 normal-case">({tags.length})</span>}
+            </p>
             <div className="flex flex-wrap gap-2">
               {tagOptions.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => toggleTag(tag)}
-                  className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200
+                  className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 active:scale-95
                     ${tags.includes(tag)
                       ? 'bg-lavender-300 text-white shadow-sm'
-                      : 'bg-warm-100/60 text-warm-500 hover:bg-warm-200/60 hover:text-warm-700'
+                      : 'bg-warm-100 text-warm-500 active:bg-warm-200'
                     }`}
                 >
                   {tag}
