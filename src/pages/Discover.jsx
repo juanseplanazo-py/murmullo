@@ -49,11 +49,11 @@ export default function Discover() {
       const q = searchQuery.toLowerCase()
       result = result.filter(p =>
         (p.text || '').toLowerCase().includes(q) ||
-        (p.category && p.category.toLowerCase().includes(q))
+        (Array.isArray(p.tags) && p.tags.some(t => t.toLowerCase().includes(q)))
       )
     }
     if (activeMood !== 'all') {
-      result = result.filter(p => p.category === activeMood)
+      result = result.filter(p => Array.isArray(p.tags) && p.tags.includes(activeMood))
     }
     return result
   }, [posts, searchQuery, activeMood])

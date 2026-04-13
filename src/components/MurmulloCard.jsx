@@ -1,20 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
+import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Trash2, Pencil, EyeOff } from 'lucide-react'
 import Avatar from './Avatar'
 import CommentPanel from './CommentPanel'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from './Toast'
 import { useUser } from '../hooks/useUser'
-import { deletePostApi } from '../api/posts'
+import { deletePostApi, toggleLikeApi, toggleSaveApi } from '../api/posts'
+import { createNotification } from '../api/notifications'
 import { timeAgo } from '../utils/time'
-
-const bgStyles = {
-  warm: 'bg-gradient-to-br from-warm-50 via-white to-warm-100/50',
-  rose: 'bg-gradient-to-br from-rose-100/30 via-white to-rose-100/20',
-  lavender: 'bg-gradient-to-br from-lavender-100/30 via-white to-lavender-100/20',
-}
 
 export default function MurmulloCard({ post, featured = false, onEdit, onRefresh }) {
   const { user } = useAuth()
@@ -29,25 +24,37 @@ export default function MurmulloCard({ post, featured = false, onEdit, onRefresh
   const [localLikeCount, setLocalLikeCount] = useState(likes.length)
   const [localSaved, setLocalSaved] = useState(user ? saves.includes(user.id) : false)
 
-  const author = useUser(post.authorId)
+  const author = useUser(post.isAnonymous ? null : post.authorId)
   const isOwn = user && post.authorId === user.id
   const commentCount = store.getCommentCount(post.id)
+  const tags = Array.isArray(post.tags) ? post.tags : []
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!user) return
+    const wasLiked = localLiked
     setLocalLiked(prev => !prev)
-    setLocalLikeCount(prev => localLiked ? prev - 1 : prev + 1)
-    // Still use local store for likes (will migrate later)
-    store.toggleLike(post.id, user.id)
-    store.refresh()
+    setLocalLikeCount(prev => wasLiked ? prev - 1 : prev + 1)
+
+    await toggleLikeApi(post.id, user.id)
+
+    // Send notification on like (not unlike)
+    if (!wasLiked && post.authorId !== user.id) {
+      createNotification({
+        userId: post.authorId,
+        fromUserId: user.id,
+        postId: post.id,
+        type: 'like',
+      })
+    }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return
+    const wasSaved = localSaved
     setLocalSaved(prev => !prev)
-    store.toggleSave(post.id, user.id)
-    store.refresh()
-    if (!localSaved) addToast('Atesorado')
+
+    await toggleSaveApi(post.id, user.id)
+    if (!wasSaved) addToast('Atesorado')
   }
 
   const handleShare = () => {
@@ -72,10 +79,10 @@ export default function MurmulloCard({ post, featured = false, onEdit, onRefresh
 
   return (
     <>
-      <article className={`rounded-3xl border border-warm-200/50 ${bgStyles[post.bgStyle] || bgStyles.warm}
-                         p-6 sm:p-8 transition-all duration-300 hover:shadow-md hover:shadow-warm-200/30 animate-fade-in`}>
+      <article className="rounded-3xl border border-warm-200/50 bg-gradient-to-br from-warm-50 via-white to-warm-100/50
+                         p-6 sm:p-8 transition-all duration-300 hover:shadow-md hover:shadow-warm-200/30 animate-fade-in">
 
-        {/* ── Text First ── */}
+        {/* ── Text ── */}
         <div
           className={`mb-6 ${featured ? 'py-6' : 'py-3'} cursor-pointer`}
           onClick={() => navigate(`/murmullo/${post.id}`)}
@@ -87,30 +94,44 @@ export default function MurmulloCard({ post, featured = false, onEdit, onRefresh
           </p>
         </div>
 
-        {/* ── Category ── */}
-        {post.category && (
-          <div className="mb-5">
-            <span className="text-xs font-medium text-lavender-400 tracking-wide uppercase">
-              {post.category}
-            </span>
+        {/* ── Tags ── */}
+        {tags.length > 0 && (
+          <div className="mb-5 flex flex-wrap gap-1.5">
+            {tags.map(tag => (
+              <span key={tag} className="text-xs font-medium text-lavender-400 tracking-wide uppercase bg-lavender-100/40 px-2 py-0.5 rounded-full">
+                {tag}
+              </span>
+            ))}
           </div>
         )}
 
         {/* ── Author ── */}
         <div className="flex items-center justify-between mb-5">
-          <Link
-            to={isOwn ? '/perfil' : `/u/${author?.username || post.authorId}`}
-            className="flex items-center gap-2.5 group"
-          >
-            <Avatar name={author?.name || '?'} size="xs" />
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-sm font-medium text-warm-700 group-hover:text-rose-400 transition-colors">
-                {author?.name || 'Anónimo'}
-              </span>
-              <span className="text-xs text-warm-400">· {displayTime}</span>
-              {post.editedAt && <span className="text-xs text-warm-300 italic">editado</span>}
+          {post.isAnonymous ? (
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-warm-200 flex items-center justify-center">
+                <EyeOff className="w-3.5 h-3.5 text-warm-400" />
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-sm font-medium text-warm-500 italic">Anónimo</span>
+                <span className="text-xs text-warm-400">· {displayTime}</span>
+              </div>
             </div>
-          </Link>
+          ) : (
+            <Link
+              to={isOwn ? '/perfil' : `/u/${author?.username || post.authorId}`}
+              className="flex items-center gap-2.5 group"
+            >
+              <Avatar name={author?.name || '?'} size="xs" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-sm font-medium text-warm-700 group-hover:text-rose-400 transition-colors">
+                  {author?.name || 'Cargando...'}
+                </span>
+                <span className="text-xs text-warm-400">· {displayTime}</span>
+                {post.editedAt && <span className="text-xs text-warm-300 italic">editado</span>}
+              </div>
+            </Link>
+          )}
 
           {isOwn && (
             <div className="relative">

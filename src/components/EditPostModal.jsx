@@ -3,16 +3,20 @@ import { X, Sparkles } from 'lucide-react'
 import { useToast } from './Toast'
 import { updatePostApi } from '../api/posts'
 
-const categories = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
+const tagOptions = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
 
 export default function EditPostModal({ post, onClose }) {
   const { addToast } = useToast()
   const [text, setText] = useState(post.text)
-  const [category, setCategory] = useState(post.category || '')
+  const [tags, setTags] = useState(Array.isArray(post.tags) ? post.tags : [])
   const [saving, setSaving] = useState(false)
 
   const maxChars = 500
   const charCount = text.length
+
+  const toggleTag = (tag) => {
+    setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  }
 
   const handleSave = async () => {
     if (!text.trim()) return
@@ -55,17 +59,22 @@ export default function EditPostModal({ post, onClose }) {
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat === category ? '' : cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
-                  ${category === cat ? 'bg-lavender-300 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'}`}
-              >
-                {cat}
-              </button>
-            ))}
+          <div>
+            <label className="text-xs font-medium text-warm-400 mb-2 block uppercase tracking-wider">
+              Etiquetas {tags.length > 0 && <span className="text-lavender-400">({tags.length})</span>}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {tagOptions.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
+                    ${tags.includes(tag) ? 'bg-lavender-300 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'}`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

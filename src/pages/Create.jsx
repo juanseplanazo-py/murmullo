@@ -1,19 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sparkles, Palette } from 'lucide-react'
+import { ArrowLeft, Sparkles, EyeOff } from 'lucide-react'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
 import { createPost } from '../api/posts'
 
-const categories = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
-
-const bgOptions = [
-  { id: 'warm', label: 'Cálido', gradient: 'bg-gradient-to-br from-warm-50 via-white to-warm-100/50', dot: 'bg-warm-300' },
-  { id: 'rose', label: 'Rosa', gradient: 'bg-gradient-to-br from-rose-100/30 via-white to-rose-100/20', dot: 'bg-rose-300' },
-  { id: 'lavender', label: 'Lavanda', gradient: 'bg-gradient-to-br from-lavender-100/30 via-white to-lavender-100/20', dot: 'bg-lavender-300' },
-]
+const tagOptions = ['Poesía', 'Reflexión', 'Pensamientos', 'Motivación', 'Amor', 'Desamor', 'Vida']
 
 const prompts = [
   '¿Qué quieres dejarle al mundo hoy?',
@@ -27,22 +21,25 @@ export default function Create() {
   const { user } = useAuth()
   const { addToast } = useToast()
   const [text, setText] = useState('')
-  const [category, setCategory] = useState('')
-  const [bgStyle, setBgStyle] = useState('warm')
+  const [tags, setTags] = useState([])
+  const [isAnonymous, setIsAnonymous] = useState(false)
   const [prompt] = useState(() => prompts[Math.floor(Math.random() * prompts.length)])
   const [isPublishing, setIsPublishing] = useState(false)
   const navigate = useNavigate()
 
   const charCount = text.length
   const maxChars = 500
-  const selectedBg = bgOptions.find(b => b.id === bgStyle)
+
+  const toggleTag = (tag) => {
+    setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  }
 
   const handlePublish = async () => {
     if (!text.trim() || !user || isPublishing) return
     setIsPublishing(true)
 
     try {
-      await createPost(text.trim(), user.id)
+      await createPost(text.trim(), user.id, { tags, isAnonymous })
       addToast('Tu murmullo fue enviado al mundo')
       navigate('/feed')
     } catch (err) {
@@ -54,7 +51,7 @@ export default function Create() {
   return (
     <Layout>
       <div className="page-container max-w-2xl mx-auto">
-        {/* Header — minimal */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <button
             onClick={() => navigate(-1)}
@@ -78,15 +75,26 @@ export default function Create() {
           </button>
         </div>
 
-        {/* Writing Space — the ritual */}
-        <div className={`rounded-3xl border border-warm-200/40 ${selectedBg.gradient} p-8 sm:p-12 mb-8 transition-all duration-500`}>
+        {/* Writing Space */}
+        <div className="rounded-3xl border border-warm-200/40 bg-gradient-to-br from-warm-50 via-white to-warm-100/50 p-8 sm:p-12 mb-8 transition-all duration-500">
           {/* Author */}
           <div className="flex items-center gap-3 mb-8 opacity-60">
-            <Avatar name={user?.name || '?'} size="sm" />
-            <span className="text-sm text-warm-500">{user?.name}</span>
+            {isAnonymous ? (
+              <>
+                <div className="w-8 h-8 rounded-full bg-warm-200 flex items-center justify-center">
+                  <EyeOff className="w-4 h-4 text-warm-400" />
+                </div>
+                <span className="text-sm text-warm-500 italic">Anónimo</span>
+              </>
+            ) : (
+              <>
+                <Avatar name={user?.name || '?'} size="sm" />
+                <span className="text-sm text-warm-500">{user?.name}</span>
+              </>
+            )}
           </div>
 
-          {/* The Writing Area — generous, focused */}
+          {/* Textarea */}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, maxChars))}
@@ -96,7 +104,7 @@ export default function Create() {
             autoFocus
           />
 
-          {/* Subtle counter */}
+          {/* Counter */}
           <div className="flex items-center justify-between mt-6 pt-5 border-t border-warm-200/20">
             <div className="flex items-center gap-2 opacity-50">
               <Sparkles className="w-4 h-4 text-lavender-300" />
@@ -120,44 +128,40 @@ export default function Create() {
           </div>
         </div>
 
-        {/* Options — collapsed, secondary */}
+        {/* Options */}
         <div className="space-y-5 opacity-80 hover:opacity-100 transition-opacity duration-300">
-          {/* Category */}
+          {/* Anonymous toggle */}
           <div>
-            <label className="text-xs font-medium text-warm-400 mb-2.5 block uppercase tracking-wider">Categoría</label>
+            <button
+              onClick={() => setIsAnonymous(!isAnonymous)}
+              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border-2 transition-all duration-200
+                ${isAnonymous
+                  ? 'border-warm-700 bg-warm-800 text-white shadow-sm'
+                  : 'border-warm-200/40 text-warm-500 hover:border-warm-300/60'
+                }`}
+            >
+              <EyeOff className="w-4 h-4" />
+              <span className="text-xs font-medium">Publicar como anónimo</span>
+            </button>
+          </div>
+
+          {/* Tags — multi-select */}
+          <div>
+            <label className="text-xs font-medium text-warm-400 mb-2.5 block uppercase tracking-wider">
+              Etiquetas {tags.length > 0 && <span className="text-lavender-400">({tags.length})</span>}
+            </label>
             <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
+              {tagOptions.map((tag) => (
                 <button
-                  key={cat}
-                  onClick={() => setCategory(cat === category ? '' : cat)}
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
                   className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200
-                    ${category === cat
+                    ${tags.includes(tag)
                       ? 'bg-lavender-300 text-white shadow-sm'
                       : 'bg-warm-100/60 text-warm-500 hover:bg-warm-200/60 hover:text-warm-700'
                     }`}
                 >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Background */}
-          <div>
-            <label className="text-xs font-medium text-warm-400 mb-2.5 flex items-center gap-2 uppercase tracking-wider">
-              <Palette className="w-3.5 h-3.5" />
-              Atmósfera
-            </label>
-            <div className="flex gap-3">
-              {bgOptions.map((bg) => (
-                <button
-                  key={bg.id}
-                  onClick={() => setBgStyle(bg.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all duration-200
-                    ${bgStyle === bg.id ? 'border-rose-300 shadow-sm' : 'border-warm-200/40 hover:border-warm-300/60'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full ${bg.dot}`} />
-                  <span className="text-xs font-medium text-warm-600">{bg.label}</span>
+                  {tag}
                 </button>
               ))}
             </div>

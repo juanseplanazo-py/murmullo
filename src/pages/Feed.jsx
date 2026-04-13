@@ -37,7 +37,7 @@ export default function Feed() {
 
   const filteredPosts = activeCategory === 'Todo'
     ? posts
-    : posts.filter(p => p.category === activeCategory)
+    : posts.filter(p => Array.isArray(p.tags) && p.tags.includes(activeCategory))
 
   const firstName = user?.name?.split(' ')[0] || ''
 
